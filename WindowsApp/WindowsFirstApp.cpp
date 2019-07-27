@@ -1,205 +1,183 @@
-// run Windows as fast as possible :-)
-#define WIN32_LEAN_AND_MEAN
-#define INITGUID
+//
+//  win32.cpp
+//  BlindFate
+//
+//  Copyright © Robert Ruzbacky
+//  
+//
 
-// include these header files
+
+// Windows header file contains all Win32 APIs
 #include <windows.h>
-#include <windowsx.h>
-#include <tchar.h>
-#include <strsafe.h>
 
-#define  WINDOW_CLASS_NAME L"WIN3DCLASS"
+// Main window handle to identify the created Window
+HWND ghMainWnd = 0;
 
-// Globals
-HWND main_window_handle = NULL;  // window handle
-HINSTANCE main_instance = NULL;
-HWND hwnd;						 // main window handle
 
-// windows message handler
-// This is how Windows handles messages
-LRESULT CALLBACK WindowProc(HWND hwnd,
-	UINT msg,
-	WPARAM wparam,
-	LPARAM lparam)
+// Initialise the Windows App
+bool InitWindowsApp(HINSTANCE instanceHandle, int show);
+
+
+// message loop
+int Windows_Message_Loop();
+
+
+//Handle events that our Window receives
+LRESULT CALLBACK
+WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+
+// Microsoft Windows main() function
+
+int WINAPI
+WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pCmdLine, int nShowCmd)
+
 {
-	PAINTSTRUCT	ps;		// paint structure
-	HDC			hdc;
+	// initiase main window
+	if (!InitWindowsApp(hInstance, nShowCmd))
 
-	// handle Windows messages
-	switch (msg)
-	{
-		// Do this on creating the window
-	case WM_CREATE:
-	{
+		return 0;
 
-		return (0);
-	} break;
+	//enter the message loop
+	return Windows_Message_Loop();
 
-	// Do this if the user double-clicks with the left mouse button
-	case WM_LBUTTONDBLCLK:
-	{
-
-		// Display message box with message
-		MessageBox(NULL, L"Cool Huh?", L"WinFirst Program",
-			MB_OK | MB_ICONEXCLAMATION);
-
-		return (0);
-	} break;
+}
 
 
-	// Do this to paint in the Window itself
-	// Windows will also use this to repaint itself if
-	// the window gets covered by another window
-	case WM_PAINT:
-	{
-		// get drawing device & begin painting in window
-		hdc = BeginPaint(hwnd, &ps);
+// create a window
+bool InitWindowsApp(HINSTANCE instanceHandle, int show)
 
-		// get rectangle (white part of window)
-		RECT rcClient;
-		GetClientRect(hwnd, &rcClient);
-
-		// save previous window background
-		int nOldBkMode = SetBkMode(hdc, TRANSPARENT);
-
-		// set text colour and store old colour
-		COLORREF clrOldTextColor = SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
-
-		// Output the text
-		DrawText(
-			hdc,		// drawing device
-			_T("This is my first Windows program!"),
-			-1,			// zero delimiter for text
-			&rcClient,	// window client area
-			DT_LEFT);  // left justify text
-
-		// add a new line (need to increase the rectangle)
-		rcClient.top = rcClient.top + 15;
-
-		// display more text
-		for (int i = 0; i < 10; i++)
-		{
-			rcClient.top = rcClient.top + 15;
-
-			DrawText(
-				hdc,
-				_T("Cool or What?!!!!!"),
-				-1,
-				&rcClient,
-				DT_LEFT);
-
-		}
-
-		rcClient.top = rcClient.top + 30;
-
-
-		DrawText(
-			hdc,
-			_T("Try Double-Clicking inside this Window"),
-			-1,
-			&rcClient,
-			DT_LEFT);
-
-		// restore original text colour
-		SetTextColor(hdc, clrOldTextColor);
-
-		// restore original window background
-		SetBkMode(hdc, nOldBkMode);
-
-		// end the window painting
-		EndPaint(hwnd, &ps);
-		return (0);
-	} break;
-
-	case WM_DESTROY:
-	{
-		PostQuitMessage(0);
-		return (0);
-	} break;
-
-	default: break;
-	} // end switch
-
-	// pass unprocessed messages to windows
-	return (DefWindowProc(hwnd, msg, wparam, lparam));
-
-} // end WindowProc function
-
-
-
-// Main Windows Function
-int WINAPI WinMain(HINSTANCE hinstance,
-	HINSTANCE hprevinstance,
-	LPSTR lpcmdline,
-	int ncmdshow)
 {
+	// fill in the properties of the Window that will be created
+	WNDCLASS wc;
+	wc.style = CS_HREDRAW | CS_VREDRAW;
+	wc.lpfnWndProc = WndProc;
+	wc.cbClsExtra = 0;
+	wc.cbWndExtra = 0;
+	wc.hInstance = instanceHandle;
+	wc.hIcon = LoadIcon(0, IDI_APPLICATION);
+	wc.hCursor = LoadCursor(0, IDC_ARROW);
+	wc.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
+	wc.lpszMenuName = 0;
+	wc.lpszClassName = L"BasicWndClass";
 
-	WNDCLASSEX winclass;
-	MSG msg;
-
-
-	// create window structure
-	// This describes some properties that need to be setup
-	// to create the window
-	winclass.cbSize = sizeof(WNDCLASSEX);
-	winclass.style = CS_DBLCLKS | CS_OWNDC |
-		CS_HREDRAW | CS_VREDRAW;
-	winclass.lpfnWndProc = WindowProc;
-	winclass.cbClsExtra = 0;
-	winclass.cbWndExtra = 0;
-	winclass.hInstance = hinstance;
-	winclass.hIcon = LoadIcon(NULL, IDI_APPLICATION);
-	winclass.hCursor = LoadCursor(NULL, IDC_ARROW);
-	winclass.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-	winclass.lpszMenuName = NULL;
-	winclass.lpszClassName = (LPCWSTR) WINDOW_CLASS_NAME;
-	winclass.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
-
-	// register the window so Windows knows about it
-	if (!RegisterClassEx(&winclass))
-		return (0);
-
-	// Create the window itself
-	if (!(hwnd = CreateWindowEx(
-		NULL,
-		WINDOW_CLASS_NAME,
-		L"Winfirst Program",
-		WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-		200, 50,  // initial x,y
-		500, // window width
-		400, // window height
-		NULL,
-		NULL,
-		hinstance,
-		NULL)))
-		return (0);
-
-
-	main_window_handle = hwnd;
-	main_instance = hinstance;
-
-
-	// main event loop
-	// This is an infinite loop which checks
-	// to see if the user has quit by closing the window,
-	// otherwise it will check for messages and process
-	// requests using the Windowproc() message handler
-	while (1)
+	// register the WNDCLASS instance with Windows
+	if (!RegisterClass(&wc))
 	{
-		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-		{
-			if (msg.message == WM_QUIT)
-				break;
+		MessageBox(0, L"RegisterClass Failed", 0, 0);
+		return false;
+	}
 
+
+
+	// create the Window
+	ghMainWnd = CreateWindow(
+
+		L"BasicWndClass",  // registered WNDCLASS instance
+		L"Name Of Game App",      // window title
+		WS_OVERLAPPEDWINDOW,   // window style
+		CW_USEDEFAULT,      // x-coordinate
+		CW_USEDEFAULT,      // y-coordinate
+		CW_USEDEFAULT,      // width
+		CW_USEDEFAULT,      // height
+		0,                  // parent
+		0,                  // menu handle
+		instanceHandle,     // app instance
+		0);                 // extra parameters
+
+	if (ghMainWnd == 0)
+	{
+		MessageBox(0, L"CreateWindow Failed", 0, 0);
+		return false;
+	}
+
+
+	// show and update the window to the screen
+	ShowWindow(ghMainWnd, show);
+	UpdateWindow(ghMainWnd);
+
+	return true;
+}
+
+
+// Windows O/S message loop
+// This also happens to be our game loop
+int Windows_Message_Loop()
+{
+	MSG msg = { 0 };
+
+	// *** initialise game code here ***
+
+
+	// message loop
+	while (msg.message != WM_QUIT)
+	{
+		// If there are Windows messages, process them
+		if (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
+
+		{
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		}
 
-	} // end while
+
+		// *** process game code here ***
+		// update game logic for the frame
+		// draw the frame
+		else
+		{
 
 
-	return (msg.wParam);
 
-} // end WinMain
+		}
 
+	}
+
+	// *** shutdown game code here ***
+
+	return (int)msg.wParam;
+
+}
+
+
+
+LRESULT CALLBACK
+WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	// message handler
+
+	switch (msg)
+	{
+
+		// check if user clicks the left mouse button, then display a popup box
+	case WM_LBUTTONDOWN:
+
+		MessageBox(0, L"Hello, World", L"Hello", MB_OK);
+		return 0;
+
+
+
+		// exit if the ESC key is pressed
+	case WM_KEYDOWN:
+
+		if (wParam == VK_ESCAPE)
+
+			DestroyWindow(ghMainWnd);
+
+		return 0;
+
+		// quit Windows
+
+	case WM_DESTROY:
+
+		PostQuitMessage(0);
+		return 0;
+
+	}
+
+	// forward messages not processed
+
+	return DefWindowProc(hWnd, msg, wParam, lParam);
+
+}
 
